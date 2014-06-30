@@ -4,21 +4,34 @@ require 'debugger'
 require 'open-uri'
 require 'hpricot'
 
-# Want to create a hash table where the key is the board (username/name/url) and the value is the count of pins found on that board as well as the exact pin #s.
+#Get ids of all pins on a board
+def get_pin_ids()
+    board = "http://www.pinterest.com/kvstark/jokes"
+    source_pin_ids = []
+    doc = Hpricot(open(board))
 
-#Each time we find a new board that contains one of the pins we care about, add it to the hash set.
-
-#Get all pins on a board
-def get_pin_nums()
-    source_board = "http://www.pinterest.com/kvstark/jokes"
-    source_pin_nums = []
-    doc = Hpricot(open(source_board))
-    pinNumbersElement = doc.search("//a[@class='pinImageWrapper']")
-    pinNumbersElement.each do |element|
-        string = element.to_html()
-        source_pin_nums << string[14,18]
+    total_pins = get_board_pin_count(doc)
+    pinIDs = doc.search("a.pinImageWrapper")
+    pinIDs.each do |id|
+        string = id.to_html()
+        source_pin_ids << string[14,18]     #HACK!  Fix this with a regular expression
     end
-    source_pin_nums
+
+    if pinIDs.size != total_pins
+        puts "Unable to scrape all of the pin ids."
+    end
+
+    source_pin_ids
+end
+
+#Get total number of pins on a board
+def get_board_pin_count(doc)
+    #find the PinCount element and get its value.
+    pins = doc.search("div.PinCount").inner_html()
+
+    #format data into a number
+    pins = pins.strip.match("[0-9]+")[0].to_i()
+    pins
 end
 
 def get_boards_for_pin(pin_number)
@@ -49,8 +62,8 @@ end
 ##
 
 contain_all_pins = []
-kvstark_learn_pins = get_pin_nums()
-print "Number of pins on source board " + kvstark_learn_pins.size.to_s()
+kvstark_learn_pins = get_pin_ids()
+print "Number of pin ids found " + kvstark_learn_pins.size.to_s()
 puts()
 
 board_hash = {}
