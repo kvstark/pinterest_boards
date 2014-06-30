@@ -5,45 +5,46 @@ require 'open-uri'
 require 'hpricot'
 
 #Get ids of all pins on a board
-def get_pin_ids()
-    board = "http://www.pinterest.com/kvstark/jokes"
+def get_pin_ids(board)
     source_pin_ids = []
     doc = Hpricot(open(board))
-
     total_pins = get_board_pin_count(doc)
     pinIDs = doc.search("a.pinImageWrapper")
     pinIDs.each do |id|
         string = id.to_html()
-        source_pin_ids << string[14,18]     #HACK!  Fix this with a regular expression
+        source_pin_ids << string.match("[0-9]+")[0]
     end
 
     if pinIDs.size != total_pins
         puts "Unable to scrape all of the pin ids."
     end
+    print "Total pins on board:" + total_pins.to_s()
+    puts " Total pins scraped: " + pinIDs.size.to_s()
 
     source_pin_ids
 end
 
 #Get total number of pins on a board
 def get_board_pin_count(doc)
-    #find the PinCount element and get its value.
+    #for normal boards
     pins = doc.search("div.PinCount").inner_html()
 
+    #for place boards
+    # if the highest class div class="App full AppBase Module" also has
+    #showingPlaceBoard at the end, it's  place board
+    #TODO: Hack; find the way to check if the showingPlaceBoard tag exists
+    if pins == ""
+        pins = doc.search("div.pinsAndFollowerCount .pinCount").inner_html()
+    end
     #format data into a number
     pins = pins.strip.match("[0-9]+")[0].to_i()
     pins
 end
 
 def get_boards_for_pin(pin_number)
-    url = "http://www.pinterest.com/pin/" + pin_number.to_s
+    url = "http://www.pinterest.com/pin/" + pin_number.to_s()
     doc = Hpricot(open(url))
     boards = doc.search("//a[@class='boardLinkWrapper']")
-    #pinBoardsElement
-    #print "For pin "
-    #print pin_number
-    #print " a total of "
-    #print boards.size.to_s
-    #print " were found.\n"
     array = []
     boards_urls = []
     boards.each do |board|
@@ -55,19 +56,23 @@ def get_boards_for_pin(pin_number)
     boards_urls
 end
 
-
-
 ##
 # MAIN PART OF CODE
 ##
 
-contain_all_pins = []
-kvstark_learn_pins = get_pin_ids()
-print "Number of pin ids found " + kvstark_learn_pins.size.to_s()
-puts()
-
 board_hash = {}
-#board_hash.store(key, value)
+contain_all_pins = []
+
+puts "Which board contains the set of pins to search for?"
+source_board_url = gets.chomp
+
+#TODO: Error checking on the source url.
+#It must be of the format /<username>/<board name>
+#Board names only contain alphanumeric characters not including _
+#or a -.  Unclear the rules for usernames.
+
+source_board_url = "http://www.pinterest.com/" + source_board_url
+kvstark_learn_pins = get_pin_ids(source_board_url)
 
 #For each pin in the set..
 kvstark_learn_pins.each do |pin|
@@ -87,20 +92,8 @@ kvstark_learn_pins.each do |pin|
             board_hash[board].push(pin)
 
         end
-    #TODO
-    #If the hash table already contains an entry for a board,
-    #increment the number of pins that match and update the array of pins to contain the numbers of both pins.
-
     end
 end
-
-#debugger
-#board_hash.each_value do |pins|
-#    if pins.size > 1
-#        puts "Boards with more than one pin:"
-#        puts board_hash.key(pins)
-#    end
-#end
 
 board_hash.each_key do |url|
     if board_hash[url].size > 1
