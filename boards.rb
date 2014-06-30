@@ -72,10 +72,10 @@ source_board_url = gets.chomp
 #or a -.  Unclear the rules for usernames.
 
 source_board_url = "http://www.pinterest.com/" + source_board_url
-kvstark_learn_pins = get_pin_ids(source_board_url)
+source_board_pins = get_pin_ids(source_board_url)
 
 #For each pin in the set..
-kvstark_learn_pins.each do |pin|
+source_board_pins.each do |pin|
 
     #Get all boards that contain that pin
     boards = get_boards_for_pin(pin)
@@ -84,20 +84,17 @@ kvstark_learn_pins.each do |pin|
     #a hash table entry for that board.
     boards.each do |board|
 
-        if board_hash[board]
-            board_hash[board].push(pin)
-        
-        else
+        if !board_hash[board]
             board_hash[board] = []
-            board_hash[board].push(pin)
-
         end
+
+        board_hash[board].push(pin)
     end
 end
 
+#print out boards with more than one pin in common
 board_hash.each_key do |url|
     if board_hash[url].size > 1
-        puts url + " " + board_hash[url].size.to_s()
+        puts url + " has " + board_hash[url].size.to_s() + " pins in common."
     end
-
 end
